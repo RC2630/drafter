@@ -1,0 +1,4 @@
+[all]
+-Archer Queen
+-Monk
+-Mega Knight
