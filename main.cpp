@@ -2,7 +2,7 @@
 // (1) implement generate random decks with all categories
 // (2) implement triple draft
 // (3) copy deck directly from program using link
-// (4) sort by "natural order" (and use green for win cons)
+// (4) sort by "natural order" in various places (and use green for win cons in mega draft)
 
 #include "general/file.h"
 #include "general/vectorUtility.h"
