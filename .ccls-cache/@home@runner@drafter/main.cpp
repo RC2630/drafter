@@ -2,7 +2,8 @@
 // (1) implement generate random decks with all categories
 // (2) implement triple draft
 // (3) copy deck directly from program using link
-// (4) sort by "natural order" in various places (and use green for win cons in mega draft)
+// (4) sort by "natural order" in various places
+// (5) use green for win cons in mega draft
 
 #include "general/file.h"
 #include "general/vectorUtility.h"
@@ -11,6 +12,7 @@
 #include "general/ansi_codes.h"
 #include "general/stringUtility.h"
 #include "general/mapUtility.h"
+#include "general/abstractFunctions.h"
 #include <set>
 
 RandUtil randUtil;
@@ -198,7 +200,7 @@ vector<string> read() {
 	
 }
 
-vector<string> getCards(vector<string>& cards, int num) {
+vector<string> getCards(vector<string>& cards, int num, bool removeFromOriginalPool = true) {
 	
 	vector<int> indexesToGet;
 	
@@ -215,7 +217,10 @@ vector<string> getCards(vector<string>& cards, int num) {
 		cardsToGet.push_back(cards.at(i));
 	}
 
-	vecUtil::removeByIndexes(cards, indexesToGet);
+	if (removeFromOriginalPool) {
+		vecUtil::removeByIndexes(cards, indexesToGet);
+	}
+	
 	return cardsToGet;
 	
 }
@@ -347,7 +352,7 @@ void help() {
 			 << "/define$<new_cat>$isec$[<cat1>]$[<cat2>]$... :\n"
 			 << "defines or redefines a new category from the intersection of the given existing categories\n\n"
 
-			 << "/select$<category>$<number> : ramdomly select a given number of cards from the given category\n"
+			 << "/select$<category>$<number> : randomly select a given number of cards from the given category\n"
 		
 			 << ANSI_NORMAL;
 	
@@ -446,8 +451,42 @@ void printDraftBoard(const vector<string>& draftBoard, const vector<string>& p1,
 	
 }
 
-bool canPickThisCard(const vector<string>& draftBoard, const vector<string>& p1, const vector<string>& p2, string card) {
-	return vecUtil::contains(draftBoard, card) && !vecUtil::contains(p1, card) && !vecUtil::contains(p2, card);
+bool duplicateChampions(const vector<string>& cardsSoFar, string newCard) {
+	bool soFarHasChampion = absFunc::ormap<string>(cardsSoFar, [] (const string& card) {
+		return vecUtil::contains(CATEGORY_MAP.at("champions"), card);
+	});
+	bool newCardIsChampion = vecUtil::contains(CATEGORY_MAP.at("champions"), newCard);
+	return soFarHasChampion && newCardIsChampion;
+}
+
+bool canPickThisCard(const vector<string>& draftBoard, const vector<string>& p1, const vector<string>& p2, string card, string& message, int playerNumber) {
+	
+	if (!vecUtil::contains(draftBoard, card)) {
+		
+		message = "The given input is not found on the draft board. Enter an available card: ";
+		return false;
+		
+	} else if ((vecUtil::contains(p1, card) && playerNumber == 1) ||
+						 (vecUtil::contains(p2, card) && playerNumber == 2)) {
+		
+		message = "The given input has already been selected by you. Enter a different card: ";
+		return false;
+		
+	} else if ((vecUtil::contains(p1, card) && playerNumber == 2) ||
+						 (vecUtil::contains(p2, card) && playerNumber == 1)) {
+
+		message = "The given input has already been selected by your opponent. Enter a different card: ";
+		return false;
+		
+	} else if (duplicateChampions((playerNumber == 1 ? p1 : p2), card)) {
+
+		message = "You have already selected a champion earlier. Enter a different card: ";
+		return false;
+		
+	}
+	
+	return true;
+	
 }
 
 void megaDraft(vector<string>& cards) {
@@ -475,11 +514,11 @@ void megaDraft(vector<string>& cards) {
 		auto playerColour = ((playerNumber == 1) ? ANSI_BLUE : ANSI_MAGENTA);
 		cout << playerColour << "\nPlayer " << playerNumber << ", please select a card from the draft board and enter your choice here: " << ANSI_GREEN;
 
-		string input;
+		string input, message;
 		getline(cin >> ws, input);
 
-		while (!canPickThisCard(draftBoard, player1Cards, player2Cards, input)) {
-			cout << ANSI_RED << "The given input cannot be selected as a card for your deck. Enter a different card: " << ANSI_GREEN;
+		while (!canPickThisCard(draftBoard, player1Cards, player2Cards, input, message, playerNumber)) {
+			cout << ANSI_RED << message << ANSI_GREEN;
 			getline(cin >> ws, input);
 		}
 
@@ -575,7 +614,7 @@ void defineNewCategory(string com) {
 void select(string com, vector<string>& preparsed) {
 	string category = parse::parseArgument(com, 1, '$');
 	int num = parse::parseNumericalArgument(com, 2, '$');
-	vector<string> selected = getCards(CATEGORY_MAP.at(category), num);
+	vector<string> selected = getCards(CATEGORY_MAP.at(category), num, false);
 	preparsed.insert(preparsed.end(), selected.begin(), selected.end());
 }
 

@@ -1,4 +1,36 @@
-[all]
--Archer Queen
--Monk
--Mega Knight
+Flying Machine
+Elixir Golem
+Furnace
+Night Witch
+Fisherman
+Lightning
+Goblins
+Three Musketeers
+Fireball
+Baby Dragon
+Clone
+Mini P.E.K.K.A
+Graveyard
+Spear Goblins
+Valkyrie
+Electro Spirit
+Mirror
+Skeletons
+Hog Rider
+Barbarian Hut
+Zappies
+Wall Breakers
+Firecracker
+Cannon Cart
+Goblin Drill
+Barbarians
+Miner
+Royal Giant
+Executioner
+Ice Wizard
+Skeleton Dragons
+Archer Queen
+Mighty Miner
+Skeleton King
+Golden Knight
+Monk
