@@ -2,8 +2,6 @@
 // (1) implement generate random decks with all categories
 // (2) implement triple draft
 // (3) copy deck directly from program using link
-// (4) sort by "natural order" in various places
-// (5) use green for win cons in mega draft
 
 #include "general/file.h"
 #include "general/vectorUtility.h"
@@ -64,6 +62,7 @@ CardList SPAWNERS_PLUS = {"Barbarian Barrel", "Royal Delivery", "Goblin Barrel",
 CardList HAS_DEPENDENTS = {"Electro Wizard", "Lumberjack"}; // and a lot more...
 
 map<string, vector<string>> CATEGORY_MAP, CAT_PLUS_MAP;
+map<string, int> CARD_TO_ORDER;
 
 void initializeCategoryMap() {
 
@@ -128,7 +127,7 @@ void initializeCategoryMap() {
 	});
 
 	CATEGORY_MAP.at("all") = vecUtil::concatenate(vector<vector<string>>{
-		CATEGORY_MAP.at("spells"), CATEGORY_MAP.at("troops"), CATEGORY_MAP.at("buildings")
+		CATEGORY_MAP.at("spells"), CATEGORY_MAP.at("buildings"), CATEGORY_MAP.at("troops")
 	});
 
 	for (string plusable : mapUtil::getKeys(CAT_PLUS_MAP)) {
@@ -146,6 +145,21 @@ void initializeCategoryMap() {
 		CATEGORY_MAP.at("has dependents"), CATEGORY_MAP.at("group of troops")
 	})});
 	
+}
+
+void initializeCardToOrder() {
+	for (int i = 0; i < CATEGORY_MAP.at("all").size(); i++) {
+		CARD_TO_ORDER.insert({CATEGORY_MAP.at("all").at(i), i});
+	}
+	CARD_TO_ORDER.at("Freeze") = -1; // this is an exception cuz Freeze should always go first
+}
+
+vector<string> sortByConventionalOrder(const vector<string>& cardList) {
+	vector<string> sorted = cardList;
+	sort(sorted.begin(), sorted.end(), [] (string card1, string card2) {
+		return CARD_TO_ORDER.at(card1) < CARD_TO_ORDER.at(card2);
+	});
+	return sorted;
 }
 
 vector<string> read() {
@@ -240,7 +254,7 @@ void getCards(vector<string>& cards, string com) {
 	}
 
 	cout << "\n";
-	for (string card : getCards(cards, numToGet)) {
+	for (string card : sortByConventionalOrder(getCards(cards, numToGet))) {
 		cout << card << "\n";
 	}
 	
@@ -256,7 +270,7 @@ void list(const vector<string>& cards, string com) {
 		}
 		
 		cout << ANSI_BLUE << "\nListing remaining cards (" << cards.size() << "):\n\n" << ANSI_NORMAL;
-		for (string c : cards) {
+		for (string c : sortByConventionalOrder(cards)) {
 			cout << c << "\n";
 		}
 		
@@ -269,7 +283,7 @@ void list(const vector<string>& cards, string com) {
 		}
 		
 		cout << ANSI_BLUE << "\nListing all cards (" << ogCards.size() << "):\n\n" << ANSI_NORMAL;
-		for (string c : ogCards) {
+		for (string c : sortByConventionalOrder(ogCards)) {
 			cout << c << "\n";
 		}
 		
@@ -297,7 +311,8 @@ void help() {
 			 << "/get <num> : get the next num cards to draft, if no argument then defaults to 2\n"
 			 << "/draft : start a classic draft\n"
 			 << "/mega : start a mega draft\n"
-			 << "/list <remaining|all|categories> : display a list of remaining cards, all cards, or all available categories in the draft\n"
+			 << "/list <remaining|all|categories> : display a list of remaining cards, all cards, "
+			 << "or all available categories in the draft\n"
 			 << "/left : display how many cards are left in the card pool\n"
 			 << "/reset : reset the card pool to what it looked like when the draft started\n"
 			 << "/help : display the program's help menu\n"
@@ -329,7 +344,8 @@ void help() {
 
 			 << "There are some other categories that you can try:\n"
 			 << "[air troops], [tower chasers], [champions], [goblins], [barbarians], [archers], [ice], [dragons], [magic],\n"
-			 << "[target air(+)], [win conditions(+)], [group of troops(+)], [splash(+)], [skeletons(+)], [fire(+)], [electro(+)], [royal(+)].\n"
+			 << "[target air(+)], [win conditions(+)], [group of troops(+)], [splash(+)], "
+			 << "[skeletons(+)], [fire(+)], [electro(+)], [royal(+)].\n"
 			 << "The plus sign in brackets indicates that there are two categories -\n"
 			 << "a less complete one without the plus sign, and a more complete one with the plus sign.\n"
 		   << "For example, [royal] contains cards such as Royal Ghost, Royal Recruits, Princess, and Prince,\n"
@@ -348,7 +364,8 @@ void help() {
 			 << "/define$<new_cat>$list$<card1>$<card2>$[<cat1>]$[<cat2>]$... :\n"
 			 << "defines or redefines a new category from listing existing cards and/or categories\n\n"
 			 << "/define$<new_cat>$except$[<category>]$<except_card1|[except_category1]>$... :\n"
-			 << "defines or redefines a new category from the first given card/category, except for any found in the second given one\n\n"
+			 << "defines or redefines a new category from the first given card/category, "
+			 << "except for any found in the second given one\n\n"
 			 << "/define$<new_cat>$isec$[<cat1>]$[<cat2>]$... :\n"
 			 << "defines or redefines a new category from the intersection of the given existing categories\n\n"
 
@@ -380,7 +397,7 @@ void classicDraft(vector<string>& cards) {
 		auto playerColour = ((playerNumber == 1) ? ANSI_BLUE : ANSI_MAGENTA);
 		cout << playerColour << "\nPlayer " << playerNumber << ", please select one of the following 2 cards:\n\n" << ANSI_NORMAL;
 		
-		auto cardChoices = getCards(cards, 2);
+		auto cardChoices = sortByConventionalOrder(getCards(cards, 2));
 		cout << cardChoices.front() << "\n" << cardChoices.back() << "\n\n"
 				 << ANSI_YELLOW << "What do you choose? Enter your choice here: " << ANSI_GREEN;
 
@@ -410,12 +427,12 @@ void classicDraft(vector<string>& cards) {
 
 	cout << "\n*** CLASSIC DRAFT, CARD PICKING, DECK SUMMARY ***\n"
 			 << ANSI_BLUE << "\nPlayer 1, your cards are:\n" << ANSI_NORMAL;
-	for (string card : player1Cards) {
+	for (string card : sortByConventionalOrder(player1Cards)) {
 		cout << card << "\n";
 	}
 
 	cout << ANSI_MAGENTA << "\nPlayer 2, your cards are:\n" << ANSI_NORMAL;
-	for (string card : player2Cards) {
+	for (string card : sortByConventionalOrder(player2Cards)) {
 		cout << card << "\n";
 	}
 
@@ -437,6 +454,8 @@ void printDraftBoard(const vector<string>& draftBoard, const vector<string>& p1,
 			cout << ANSI_BLUE;
 		} else if (vecUtil::contains(p2, draftBoard.at(i))) {
 			cout << ANSI_MAGENTA;
+		} else if (vecUtil::contains(CATEGORY_MAP.at("win conditions"), draftBoard.at(i))) {
+			cout << ANSI_GREEN;
 		} else {
 			cout << ANSI_YELLOW;
 		}
@@ -459,7 +478,8 @@ bool duplicateChampions(const vector<string>& cardsSoFar, string newCard) {
 	return soFarHasChampion && newCardIsChampion;
 }
 
-bool canPickThisCard(const vector<string>& draftBoard, const vector<string>& p1, const vector<string>& p2, string card, string& message, int playerNumber) {
+bool canPickThisCard(const vector<string>& draftBoard, const vector<string>& p1,
+										 const vector<string>& p2, string card, string& message, int playerNumber) {
 	
 	if (!vecUtil::contains(draftBoard, card)) {
 		
@@ -497,7 +517,7 @@ void megaDraft(vector<string>& cards) {
 	}
 
 	vector<string> ogCards = cards;
-	vector<string> draftBoard = getCards(cards, 36);
+	vector<string> draftBoard = sortByConventionalOrder(getCards(cards, 36));
 	vector<string> player1Cards, player2Cards;
 
 	map<int, int> stageToPlayer = mapUtil::makeMapFromVectorOfPairs(vector<pair<int, int>>({
@@ -512,7 +532,8 @@ void megaDraft(vector<string>& cards) {
 
 		int playerNumber = stageToPlayer.at(i);
 		auto playerColour = ((playerNumber == 1) ? ANSI_BLUE : ANSI_MAGENTA);
-		cout << playerColour << "\nPlayer " << playerNumber << ", please select a card from the draft board and enter your choice here: " << ANSI_GREEN;
+		cout << playerColour << "\nPlayer " << playerNumber
+				 << ", please select a card from the draft board and enter your choice here: " << ANSI_GREEN;
 
 		string input, message;
 		getline(cin >> ws, input);
@@ -536,12 +557,12 @@ void megaDraft(vector<string>& cards) {
 	printDraftBoard(draftBoard, player1Cards, player2Cards);
 	
 	cout << ANSI_BLUE << "\nPlayer 1, your cards are:\n" << ANSI_NORMAL;
-	for (string card : player1Cards) {
+	for (string card : sortByConventionalOrder(player1Cards)) {
 		cout << card << "\n";
 	}
 
 	cout << ANSI_MAGENTA << "\nPlayer 2, your cards are:\n" << ANSI_NORMAL;
-	for (string card : player2Cards) {
+	for (string card : sortByConventionalOrder(player2Cards)) {
 		cout << card << "\n";
 	}
 
@@ -639,6 +660,7 @@ void preparse() {
 
 void reset(vector<string>& cards) {
 	initializeCategoryMap();
+	initializeCardToOrder();
 	preparse();
 	cards = read();
 	cout << "\nReset successful.\n";
@@ -647,6 +669,7 @@ void reset(vector<string>& cards) {
 int main() {
 
 	initializeCategoryMap();
+	initializeCardToOrder();
 	preparse();
 	vector<string> cards = read();
 	string in;
